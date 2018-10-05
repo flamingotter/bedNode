@@ -270,7 +270,7 @@ void setup() {
 
   pinMode(RIRPIN, INPUT);
   pinMode(RIRPIN1, INPUT);
-  pinMode(DHTPIN, INPUT);
+  //pinMode(DHTPIN, INPUT);
   //pinMode(LDRPIN, INPUT);
   
   FastLED.addLeds<CHIPSET, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
