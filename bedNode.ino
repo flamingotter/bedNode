@@ -6,7 +6,6 @@ To use this code you will need the following dependancies:
         - Next, download the ESP8266 dependancies by going to Tools -> Board -> Board Manager and searching for ESP8266 and installing it.
   
   - You will also need to download the follow libraries by going to Sketch -> Include Libraries -> Manage Libraries
-      - DHT sensor library 
       - Adafruit unified sensor
       - PubSubClient
       - ArduinoJSON 
@@ -19,7 +18,6 @@ To use this code you will need the following dependancies:
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-#include <DHT.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WiFi.h>
 #define FASTLED_ALLOW_INTERRUPTS 0
@@ -38,11 +36,11 @@ To use this code you will need the following dependancies:
 
 
 /************* MQTT TOPICS (change these topics as you wish)  **************************/
-#define bed_state_topic "flamingotter/bedSensor1"
-#define bed_set_topic "flamingotter/bedSensor1/set"
+#define bed_state_topic "home/bedNode"
+#define bed_set_topic "home/bedNode/set"
 
-#define bed_led_state_topic "flamingotter/bedLed1"
-#define bed_led_set_topic "flamingotter/bedLed1/set"
+#define bed_led_state_topic "home/bedLed1"
+#define bed_led_set_topic "home/bedLed1/set"
 
 const char* on_cmd = "ON";
 const char* off_cmd = "OFF";
@@ -62,9 +60,6 @@ int OTAport = 8266;
 /**************************** PIN DEFINITIONS ********************************************/
 #define RIRPIN    D4
 #define RIRPIN1   D5
-#define DHTPIN    D7
-#define DHTTYPE   DHT22
-//#define LDRPIN    A0
 
 
 /*********************************** FastLED Definitions ********************************/
@@ -187,16 +182,6 @@ PubSubClient client(espClient);
 
 
 /**************************** SENSOR DEFINITIONS *******************************************/
-//float ldrValue;
-//int LDR;
-//float calcLDR;
-//float diffLDR = 25;
-
-float diffTEMP = 0.2;
-float tempValue;
-
-float diffHUM = 1;
-float humValue;
 
 /****RIR FUNCTIONS START****/
   
@@ -229,9 +214,6 @@ float humValue;
   int lastrirValue1 = 0;     // previous1 state of the RIR
 
 /****RIR FUNCTIONS END****/
-
-/**** TEMP HUMIDITY SENSOR ****/
-DHT dht(DHTPIN, DHTTYPE);
 
 
 //WHAT DO THESE DO??
@@ -270,7 +252,7 @@ void setup() {
 
   pinMode(RIRPIN, INPUT);
   pinMode(RIRPIN1, INPUT);
-  pinMode(DHTPIN, INPUT);
+  //pinMode(DHTPIN, INPUT);
   //pinMode(LDRPIN, INPUT);
   
   FastLED.addLeds<CHIPSET, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
@@ -486,11 +468,6 @@ void sendBedState() {
   root["mo1"] = (String)motionStatus1;
   root["moCnt1"] = (String)rirMotionCounter1;
   root["lTrig1"] = (String)longTrig1;
-  //root["ldr"] = (String)LDR;
-  root["temp"] = (String)tempValue;
-  root["hum"] = (String)humValue;
-  //root["heatIdx"] = (String)calculateHeatIndex(humValue, tempValue);
-
 
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
@@ -499,32 +476,6 @@ void sendBedState() {
   client.publish(bed_state_topic, buffer, true);
 }
 
-
-/*
- * Calculate Heat Index value AKA "Real Feel"
- * NOAA heat index calculations taken from
- * http://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
- */
-/***************************************
-float calculateHeatIndex(float humidity, float temp) {
-  float heatIndex= 0;
-  if (temp >= 80) {
-    heatIndex = -42.379 + 2.04901523*temp + 10.14333127*humidity;
-    heatIndex = heatIndex - .22475541*temp*humidity - .00683783*temp*temp;
-    heatIndex = heatIndex - .05481717*humidity*humidity + .00122874*temp*temp*humidity;
-    heatIndex = heatIndex + .00085282*temp*humidity*humidity - .00000199*temp*temp*humidity*humidity;
-  } else {
-     heatIndex = 0.5 * (temp + 61.0 + ((temp - 68.0)*1.2) + (humidity * 0.094));
-  }
-
-  if (humidity < 13 && 80 <= temp <= 112) {
-     float adjustment = ((13-humidity)/4) * sqrt((17-abs(temp-95.))/17);
-     heatIndex = heatIndex - adjustment;
-  }
-
-  return heatIndex;
-}
-********************************************/
 
 
 /********************************** START LED SEND STATE*****************************************/
@@ -573,13 +524,6 @@ void reconnect() {
     }
   }
 }
-
-/********************************** START CHECK SENSOR **********************************/
-bool checkBoundSensor(float newValue, float prevValue, float maxDiff) {
-  return newValue < prevValue - maxDiff || newValue > prevValue + maxDiff;
-}
-
-
 
 /********************************** START Set Color*****************************************/
 void setColor(int inR, int inG, int inB) {
@@ -735,31 +679,6 @@ void sensor() {
     rirMotionCounter1 = 0;
   }
 /****RIR 1 FUNCTIONS END****/
-
-/****DHT CODE****/
-
-  float newTempValue = dht.readTemperature(true); //to use celsius remove the true text inside the parentheses  
-  float newHumValue = dht.readHumidity();
-    
-  if (checkBoundSensor(newTempValue, tempValue, diffTEMP)) {
-    tempValue = newTempValue;
-    sendBedState();
-  }
-
-  if (checkBoundSensor(newHumValue, humValue, diffHUM)) {
-    humValue = newHumValue;
-    sendBedState();
-  }
-
-  delay(100);
-
-/****LDR CODE***
-  int newLDR = analogRead(LDRPIN);
-
-  if (checkBoundSensor(newLDR, LDR, diffLDR)) {
-    LDR = newLDR;
-    sendBedState();
-  }*/
 }
 
 
