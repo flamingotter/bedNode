@@ -1,0 +1,48 @@
+void shortPressAction()
+{
+  if (!macroButton)
+  {
+    toggleOnOff();
+    colorUpdated(2);
+  } else {
+    applyMacro(macroButton);
+  }
+}
+
+void handleButton()
+{
+  
+  if (digitalRead(RIRPIN) == LOW && !buttonPressedBefore) //pressed
+  {
+    buttonPressedTime = millis();
+    buttonPressedBefore = true;
+  }
+  else if (digitalRead(RIRPIN) == HIGH && buttonPressedBefore) //released
+  {
+    long dur = millis() - buttonPressedTime;
+    if (dur < 50) {buttonPressedBefore = false; return;} //too short "press", debounce
+    //bool doublePress = buttonWaitTime;
+    buttonWaitTime = 0;
+
+    if (dur > 1500) //long press
+    {
+      longTrig = true; 
+      sendBedState();
+    }
+    //else { //short press
+    //  if (macroDoublePress)
+    //  {
+    //    if (doublePress) applyMacro(macroDoublePress);
+    //    else buttonWaitTime = millis();
+    //  } else shortPressAction();
+    //}
+    buttonPressedBefore = false;
+  }
+
+  if (buttonWaitTime && millis() - buttonWaitTime > 450 && !buttonPressedBefore)
+  {
+    buttonWaitTime = 0;
+    shortPressAction();
+  }
+
+}
